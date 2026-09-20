@@ -1,0 +1,24 @@
+{
+  "debounceSeconds": 0.3,
+  "default": {
+    "tiltLeft": ["command", "["],
+    "tiltRight": ["command", "]"]
+  },
+  "apps": {
+    "com.microsoft.rdc.macos": {
+      "tiltLeft": ["option", "arrowLeft"],
+      "tiltRight": ["option", "arrowRight"]
+    },
+    "com.p5sys.jump.mac.viewer": {
+      "tiltLeft": ["option", "arrowLeft"],
+      "tiltRight": ["option", "arrowRight"]
+    },
+    "com.p5sys.jump.mac.viewer.web": {
+      "tiltLeft": ["option", "arrowLeft"],
+      "tiltRight": ["option", "arrowRight"]
+    },
+    "com.microsoft.Excel": "passthrough",
+    "com.apple.Numbers": "passthrough",
+    "com.mitchellh.ghostty": "passthrough"
+  }
+}
