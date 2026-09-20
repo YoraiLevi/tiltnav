@@ -128,6 +128,27 @@ is rejected and the last good configuration stays live.
 Why `⌘[` locally but `⌥←` remotely: `⌘[` is Back in Mac browsers and Finder, while remote-desktop
 clients deliver Mac **Option** to the guest as **Alt**, making `⌥←` into Windows' `Alt+Left`.
 
+### Is my mouse discrete or continuous?
+
+`discreteWheelOnly` works because a notched wheel and a trackpad disagree on one flag. If tiltnav ignores
+your mouse, or still fires on your trackpad, measure it rather than guessing:
+
+```
+swiftc -O -o /tmp/srcprobe srcprobe.swift && /tmp/srcprobe
+```
+
+It needs Accessibility for whatever terminal you run it from, taps read-only, changes nothing, and prints
+a line per horizontal scroll. Tilt your wheel, then swipe your trackpad, and compare the `cont=` column.
+`cont=0` is what tiltnav acts on. On an MX Ergo S plus a MacBook trackpad the split is total:
+
+```
+tilt      h=  -1 v=   0 cont=0 scrollPhase=0 momentum=0 pointH=   -1
+trackpad  h=  -4 v=   0 cont=1 scrollPhase=2 momentum=0 pointH=  -49
+```
+
+If your mouse reports `cont=1`, set `discreteWheelOnly` to `false` — and your trackpad will fire chords
+too, because at that point nothing distinguishes them.
+
 ### Finding a bundle identifier
 
 Focus the app, then use **Copy mapping snippet for this app** in the tiltnav menu and paste it
