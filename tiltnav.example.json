@@ -1,5 +1,6 @@
 {
   "debounceSeconds": 0.3,
+  "discreteWheelOnly": true,
   "default": {
     "tiltLeft": ["command", "["],
     "tiltRight": ["command", "]"]

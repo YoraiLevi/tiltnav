@@ -116,6 +116,13 @@ func glyphDescribe(_ b: Behaviour) -> String {
 
 struct Config {
     var debounce: Double = 0.30
+    /// A trackpad's horizontal swipe is the same CGEvent as a wheel tilt, so the trackpad
+    /// otherwise inherits tiltnav's Back/Forward and a stray two-finger drift navigates away.
+    /// macOS marks a trackpad's scroll continuous (pixel-precise, phased) and a notched wheel
+    /// discrete; measured on this machine, tilt is always isContinuous=0 and the trackpad always
+    /// isContinuous=1, with no overlap. Set false only for a high-resolution wheel that reports
+    /// itself continuous — then the trackpad fires too.
+    var discreteWheelOnly: Bool = true
     var defaultBehaviour: Behaviour = .passthrough
     var apps: [String: Behaviour] = [:]
     var parsedOK = false
@@ -179,6 +186,7 @@ struct Config {
             return nil
         }
         if let d = root["debounceSeconds"] as? Double { c.debounce = d }
+        if let b = root["discreteWheelOnly"] as? Bool { c.discreteWheelOnly = b }
         if let raw = root["default"] {
             if let b = parseBehaviour(raw, "default", &c.rejected) { c.defaultBehaviour = b }
         }
@@ -283,6 +291,7 @@ final class Runtime {
     var eventsSeen = 0
     var chordsSent = 0
     var passthroughCount = 0
+    var continuousIgnored = 0
     var tapReEnables = 0
     var lastEventAt: Date?
     var lastChordAt: Date?
@@ -451,6 +460,15 @@ let tapCallback: CGEventTapCallBack = { _, type, event, _ in
     let h = event.getIntegerValueField(.scrollWheelEventDeltaAxis2)
     if h == 0 { return Unmanaged.passUnretained(event) }   // vertical scroll is never ours
 
+    // The trackpad reaches us as the same event a wheel tilt does. Drop it before the counters,
+    // so a swipe is not "a tilt seen" — an honest activity line is the only way to tell
+    // "my mouse is not being heard" from "my swipes are being correctly declined".
+    if rt.config.discreteWheelOnly,
+       event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0 {
+        rt.continuousIgnored += 1
+        return Unmanaged.passUnretained(event)
+    }
+
     rt.eventsSeen += 1
     rt.lastEventAt = Date()
     rt.lastDelta = Int(h)
@@ -576,6 +594,7 @@ func statusReport() -> (String, Int32) {
     s += "  tap         : \(rt.tapArmed ? "created at HID point, enabled" : "NOT CREATED")\n"
     s += "  proof       : self-test \(rt.selfTestPassed ? "PASSED" : "FAILED") \(rt.selfTestAt.map { ISO.string(from: $0) } ?? "never") (round-trip \(rt.selfTestMs)ms)\n"
     s += "  activity    : \(rt.eventsSeen) horizontal-scroll events seen, \(rt.chordsSent) chords sent, \(rt.passthroughCount) passthrough\n"
+    s += "  trackpad    : \(rt.config.discreteWheelOnly ? "ignored — \(rt.continuousIgnored) continuous-scroll events passed through untouched" : "NOT ignored (discreteWheelOnly=false) — swipes fire chords too")\n"
     s += "                last event \(ago(rt.lastEventAt)) · last chord \(ago(rt.lastChordAt)) · \(rt.tapReEnables) tap re-enables\n"
     s += "  calibration : \(rt.calibration.describe)\n"
     s += "  at login    : \(startAtLoginEnabled() ? "enabled" : "disabled")\n"
@@ -766,6 +785,7 @@ final class MenuController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
         add(menu, "\(rt.eventsSeen) tilts seen · \(rt.chordsSent) chords sent · last \(ago(rt.lastEventAt))", enabled: false)
+        if rt.config.discreteWheelOnly { add(menu, "trackpad ignored · \(rt.continuousIgnored) swipes passed through", enabled: false) }
         add(menu, "   \(rt.calibration.describe)", enabled: false)
         add(menu, "Swap tilt directions", #selector(swapDirections))
         let w = NSMenuItem(title: "Watch tilts in the log", action: #selector(toggleWatch), keyEquivalent: "")

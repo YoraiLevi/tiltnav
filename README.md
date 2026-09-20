@@ -91,6 +91,7 @@ is rejected and the last good configuration stays live.
 ```json
 {
   "debounceSeconds": 0.3,
+  "discreteWheelOnly": true,
   "default": {
     "tiltLeft":  ["command", "["],
     "tiltRight": ["command", "]"]
@@ -113,6 +114,14 @@ is rejected and the last good configuration stays live.
 - `"passthrough"` leaves real horizontal scrolling alone for that app — use it for spreadsheets
   and terminals.
 - `debounceSeconds` collapses the repeats a held tilt produces into one action.
+- `discreteWheelOnly` (default `true`) keeps the **trackpad** out of this. A two-finger
+  horizontal swipe arrives as the same `scrollWheel` event a wheel tilt does, so without this
+  filter a slight sideways drift while scrolling navigates Back. macOS marks a trackpad's
+  scroll *continuous* — pixel-precise and phased — and a notched wheel *discrete*; tiltnav acts
+  only on the discrete ones and passes the rest through untouched. `--status` counts what it
+  declined, so a mouse that is simply not being heard never looks like a swipe being ignored.
+  Set it to `false` only for a high-resolution wheel that reports itself continuous — and accept
+  that the trackpad then fires chords too.
 - Unknown keys or modifiers are rejected per entry and named in `--status`, rather than being
   silently ignored.
 
